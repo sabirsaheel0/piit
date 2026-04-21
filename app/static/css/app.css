@@ -1,0 +1,22 @@
+body {
+  background: #f8f9fa;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.sidebar {
+  width: 240px;
+  min-height: calc(100vh - 56px);
+}
+
+.nav-link {
+  color: #334155;
+}
+
+.nav-link:hover {
+  background: #e2e8f0;
+  border-radius: 6px;
+}

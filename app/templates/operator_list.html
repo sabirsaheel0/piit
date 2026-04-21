@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "partials_nav.html" %}
+<div class="d-flex">
+  {% include "partials_sidebar.html" %}
+  <main class="p-4 flex-grow-1">
+    <h4>Operators</h4>
+    <div class="card p-3">
+      <div class="row g-2 mb-3">
+        <div class="col-md-4"><input id="searchInput" class="form-control" placeholder="Search name/email"></div>
+        <div class="col-md-3">
+          <select id="sortBy" class="form-select">
+            <option value="created_at">Created At</option>
+            <option value="full_name">Name</option>
+            <option value="email">Email</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select id="sortOrder" class="form-select">
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
+          </select>
+        </div>
+        <div class="col-md-2"><button id="filterBtn" class="btn btn-primary w-100">Apply</button></div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle">
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Created At</th><th>Actions</th></tr></thead>
+          <tbody id="operatorsBody"></tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-between">
+        <button class="btn btn-outline-secondary btn-sm" id="prevPage">Previous</button>
+        <small id="pageInfo" class="text-muted"></small>
+        <button class="btn btn-outline-secondary btn-sm" id="nextPage">Next</button>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  requireAuth();
+  bindLogout();
+  hydrateCurrentOperator('#currentUserName');
+
+  let page = 1;
+  const pageSize = 10;
+  let total = 0;
+
+  async function loadOperators() {
+    const query = new URLSearchParams({
+      page,
+      page_size: pageSize,
+      search: $('#searchInput').val(),
+      sort_by: $('#sortBy').val(),
+      sort_order: $('#sortOrder').val(),
+    });
+
+    const data = await apiRequest(`/api/operators?${query.toString()}`, 'GET', null, true);
+    total = data.total;
+
+    const rows = data.items.map(op => `
+      <tr>
+        <td>${op.id}</td>
+        <td>${op.full_name}</td>
+        <td>${op.email}</td>
+        <td><span class="badge ${op.status === 'Active' ? 'bg-success' : 'bg-secondary'}">${op.status}</span></td>
+        <td>${new Date(op.created_at).toLocaleString()}</td>
+        <td><a class="btn btn-sm btn-outline-primary" href="/operators/${op.id}/edit">Edit</a></td>
+      </tr>
+    `).join('');
+
+    $('#operatorsBody').html(rows || '<tr><td colspan="6" class="text-center text-muted">No records found</td></tr>');
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    $('#pageInfo').text(`Page ${page} of ${totalPages} (${total} total)`);
+    $('#prevPage').prop('disabled', page <= 1);
+    $('#nextPage').prop('disabled', page >= totalPages);
+  }
+
+  $('#filterBtn').on('click', () => { page = 1; loadOperators(); });
+  $('#prevPage').on('click', () => { if (page > 1) { page--; loadOperators(); } });
+  $('#nextPage').on('click', () => {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (page < totalPages) { page++; loadOperators(); }
+  });
+
+  loadOperators();
+</script>
+{% endblock %}

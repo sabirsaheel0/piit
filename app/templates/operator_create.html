@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "partials_nav.html" %}
+<div class="d-flex">
+  {% include "partials_sidebar.html" %}
+  <main class="p-4 flex-grow-1">
+    <h4>Create Operator</h4>
+    <div id="createAlert"></div>
+    <form id="createOperatorForm" class="card p-3">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Full Name</label>
+          <input type="text" id="full_name" class="form-control" required minlength="2">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input type="email" id="email" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Password</label>
+          <input type="password" id="password" class="form-control" required minlength="8">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Role</label>
+          <input type="text" id="role" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Status</label>
+          <select id="status" class="form-select" required>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-primary" type="submit">Create</button>
+      </div>
+    </form>
+  </main>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  requireAuth();
+  bindLogout();
+  hydrateCurrentOperator('#currentUserName');
+
+  $('#createOperatorForm').on('submit', async function (e) {
+    e.preventDefault();
+    const payload = {
+      full_name: $('#full_name').val(),
+      email: $('#email').val(),
+      password: $('#password').val(),
+      role: $('#role').val() || null,
+      status: $('#status').val(),
+    };
+
+    try {
+      await apiRequest('/api/operators', 'POST', payload, true);
+      showAlert('#createAlert', 'Operator created successfully', 'success');
+      this.reset();
+    } catch (error) {
+      showAlert('#createAlert', error.message || 'Failed to create operator', 'danger');
+    }
+  });
+</script>
+{% endblock %}
