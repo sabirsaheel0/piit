@@ -1,3 +1,3 @@
-from app.models.operator import OperatorDocument
+from app.models.operator import Operator
 
-__all__ = ["OperatorDocument"]
+__all__ = ["Operator"]

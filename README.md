@@ -7,8 +7,8 @@ Production-ready FastAPI admin panel starter with JWT auth, secure operator mana
 ```bash
 app/
   core/            # security + shared dependencies
-  database/        # MongoDB connection and indexes
-  models/          # typed document models
+  database/        # DB connection/session
+  models/          # SQLAlchemy models
   routes/          # API + page routes
   schemas/         # Pydantic request/response schemas
   services/        # business logic layer
@@ -18,49 +18,37 @@ app/
 
 ## 2) Prerequisites
 
-- Python 3.11+ (for local run)
-- Docker (recommended)
-- MongoDB Atlas cluster or local MongoDB
+- Python 3.11+
+- MySQL 8+
 
-## 3) Quick Start (Docker Compose)
-
-```bash
-cp .env.example .env
-# set MONGODB_URI if using Atlas, otherwise local mongo is auto-provisioned
-
-docker compose up --build
-```
-
-Open:
-- Login: http://127.0.0.1:8000/
-- Dashboard: http://127.0.0.1:8000/dashboard
-
-## 4) Atlas Configuration
-
-Set these in `.env`:
-
-```env
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority&appName=<app-name>
-MONGODB_DB=admin_dashboard
-```
-
-> Ensure your Atlas network access list allows your Docker host IP.
-
-## 5) Local Python Run (optional)
+## 3) Setup
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+```
+
+Edit `.env` with your MySQL credentials.
+
+## 4) Run
+
+```bash
 export $(cat .env | xargs)
 uvicorn app.main:app --reload
 ```
 
-## 6) Data Model
+Open:
+- Login: http://127.0.0.1:8000/
+- Dashboard: http://127.0.0.1:8000/dashboard
 
-`operators` collection fields:
-- id (numeric auto-increment via `counters` collection)
+## 5) Database Schema
+
+`operators` table is created by SQLAlchemy on startup.
+
+Columns:
+- id (PK, auto-increment)
 - full_name (required)
 - email (unique, required)
 - password_hash (required)
@@ -70,19 +58,18 @@ uvicorn app.main:app --reload
 - created_at
 - updated_at
 
-## 7) API Endpoints
+## 6) API Endpoints
 
 ### Auth
 - `POST /api/auth/login`
-- `GET /api/auth/me`
 
-### Operators
+### Operators (JWT required)
 - `POST /api/operators`
 - `GET /api/operators`
 - `GET /api/operators/{operator_id}`
 - `PUT /api/operators/{operator_id}`
 
-## 8) Example API Requests (curl)
+## 7) Example API Requests (curl)
 
 ### Login
 ```bash
@@ -99,10 +86,34 @@ curl -X POST http://127.0.0.1:8000/api/operators \
   -d '{"full_name":"Jane Doe","email":"jane@example.com","password":"StrongPass123","role":"Supervisor","status":"Active"}'
 ```
 
-## 9) Security Notes
+### List operators
+```bash
+curl "http://127.0.0.1:8000/api/operators?page=1&page_size=10&search=jane&sort_by=created_at&sort_order=desc" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Update operator
+```bash
+curl -X PUT http://127.0.0.1:8000/api/operators/2 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -d '{"full_name":"Jane Updated","email":"jane.updated@example.com","status":"Active","password":null}'
+```
+
+## 8) Security Notes
 
 - Passwords are hashed using bcrypt (`passlib`).
 - JWT Bearer token is required on all operator APIs.
 - Validation enforced with Pydantic schemas.
 - Master operator protection is enforced in service layer.
 - Proper 401/403/404/409 responses are returned.
+
+## 9) Phase 1 Scope
+
+Included:
+- Auth, Dashboard shell, operator create/list/edit
+
+Not included:
+- Delete operator
+- Advanced RBAC
+- Audit logs

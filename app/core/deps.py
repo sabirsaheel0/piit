@@ -1,17 +1,18 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pymongo.database import Database
+from sqlalchemy.orm import Session
 
 from app.core.security import decode_access_token
 from app.database.session import get_db
+from app.models import Operator
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_operator(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Database = Depends(get_db),
-) -> dict:
+    db: Session = Depends(get_db),
+) -> Operator:
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -26,7 +27,7 @@ def get_current_operator(
             detail="Invalid or expired token",
         ) from None
 
-    operator = db["operators"].find_one({"email": email}, {"_id": 0})
+    operator = db.query(Operator).filter(Operator.email == email).first()
     if not operator:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Operator not found")
 
@@ -35,12 +36,12 @@ def get_current_operator(
 
 def get_optional_current_operator(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Database = Depends(get_db),
-) -> dict | None:
+    db: Session = Depends(get_db),
+) -> Operator | None:
     if not credentials:
         return None
     try:
         email = decode_access_token(credentials.credentials)
     except ValueError:
         return None
-    return db["operators"].find_one({"email": email}, {"_id": 0})
+    return db.query(Operator).filter(Operator.email == email).first()
